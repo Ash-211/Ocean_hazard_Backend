@@ -1,0 +1,33 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Hazards Map Test</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <style>#map{height:100vh}</style>
+</head>
+<body>
+<div id="map"></div>
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script>
+  const API_URL = "http://localhost:8000/hazards/geojson";
+  const map = L.map('map').setView([20.0, 80.0], 5);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19
+  }).addTo(map);
+
+  async function loadHazards() {
+    const res = await fetch(API_URL);
+    const geo = await res.json();
+    L.geoJSON(geo, {
+      onEachFeature: (feat, layer) => {
+        const p = feat.properties;
+        layer.bindPopup(`<b>${p.hazard_type}</b><br>severity: ${p.severity}<br>${p.description||""}`);
+      }
+    }).addTo(map);
+  }
+
+  loadHazards();
+</script>
+</body>
+</html>
