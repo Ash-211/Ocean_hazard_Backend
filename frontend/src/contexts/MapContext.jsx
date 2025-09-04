@@ -85,6 +85,10 @@ export const MapProvider = ({ children }) => {
       }
       
       const data = await response.json()
+      console.log('Fetched hazard reports:', data.features?.length || 0, 'items')
+      if (data.features && data.features.length > 0) {
+        console.log('First fetched hazard coordinates:', data.features[0].geometry.coordinates)
+      }
       setHazardReports(data.features || [])
     } catch (err) {
       setError(err.message)
