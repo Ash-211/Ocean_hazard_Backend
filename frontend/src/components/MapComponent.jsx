@@ -1,6 +1,5 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useMemo } from 'react'
 import { MapContainer, TileLayer, Marker, Popup, CircleMarker, useMap } from 'react-leaflet'
-import L from 'leaflet'
 import { useMap as useMapContext } from '../contexts/MapContext'
 
 const DEFAULT_POSITION = [20.5937, 78.9629] // Center of India
@@ -27,35 +26,96 @@ const LocationMarker = () => {
 const HazardMarkers = () => {
   const { hazardReports } = useMapContext()
 
-  return (
-    <>
-      {hazardReports.map((feature) => {
-        const coords = feature.geometry.coordinates
-        const props = feature.properties
-        return (
-          <Marker 
-            key={props.id} 
-            position={[coords[1], coords[0]]} 
-            icon={L.icon({
-              iconUrl: '/marker-icon.png',
-              iconSize: [25, 41],
-              iconAnchor: [12, 41],
-              popupAnchor: [1, -34],
-              shadowUrl: '/marker-shadow.png',
-              shadowSize: [41, 41]
-            })}
-          >
-            <Popup>
-              <strong>{props.hazard_type}</strong><br />
-              Severity: {props.severity}<br />
-              {props.description}<br />
-              Reported: {new Date(props.report_time).toLocaleString()}
-            </Popup>
-          </Marker>
-        )
-      })}
-    </>
-  )
+  console.log('HazardMarkers rendering with reports:', hazardReports.length, 'items')
+  if (hazardReports.length > 0) {
+    console.log('First hazard coordinates:', hazardReports[0].geometry.coordinates)
+  }
+
+  const getSeverityColor = (severity) => {
+    if (typeof severity !== 'number') {
+      return 'blue'
+    }
+    switch (severity) {
+      case 1:
+        return '#ff0000' // critical - bright red
+      case 2:
+        return '#ff4500' // high - orange red
+      case 3:
+        return '#ffa500' // medium - orange
+      case 4:
+        return '#ffff00' // low - yellow
+      default:
+        return 'blue'
+    }
+  }
+
+  const getSeverityGlowClass = (severity) => {
+    if (typeof severity !== 'number') {
+      return 'default-glow'
+    }
+    switch (severity) {
+      case 1:
+        return 'critical-glow'
+      case 2:
+        return 'high-glow'
+      case 3:
+        return 'medium-glow'
+      case 4:
+        return 'low-glow'
+      default:
+        return 'default-glow'
+    }
+  }
+
+  const getSeverityRadius = (severity) => {
+    if (typeof severity !== 'number') {
+      return 12
+    }
+    switch (severity) {
+      case 1:
+        return 25 // critical
+      case 2:
+        return 20 // high
+      case 3:
+        return 15 // medium
+      case 4:
+        return 10 // low
+      default:
+        return 12
+    }
+  }
+
+  const markers = useMemo(() => {
+    return hazardReports.map((feature) => {
+      const coords = feature.geometry.coordinates
+      const props = feature.properties
+      const color = getSeverityColor(props.severity)
+      const radius = getSeverityRadius(props.severity)
+      const glowClass = getSeverityGlowClass(props.severity)
+      // Draw a fixed circle around the hazard point
+      return (
+        <CircleMarker
+          key={props.id}
+          center={[coords[1], coords[0]]}
+          radius={radius}
+          color={color}
+          fillColor={color}
+          fillOpacity={0.6}
+          weight={2}
+          className={`hazard-circle ${glowClass}`}
+        >
+          <Popup>
+            <strong>{props.hazard_type}</strong><br />
+            Severity: {props.severity}<br />
+            {props.description}<br />
+            Reported: {new Date(props.report_time).toLocaleString()}
+          </Popup>
+        </CircleMarker>
+      )
+    })
+  }, [hazardReports])
+
+  return <>{markers}</>
 }
 
 const HotspotCircles = () => {
@@ -101,13 +161,31 @@ const MapComponent = ({ onShowReportModal, onShowSidePanel }) => {
     }
   }
 
+  const handleMapCreated = (mapInstance) => {
+    setMap(mapInstance)
+    console.log('Map created with center:', mapInstance.getCenter(), 'zoom:', mapInstance.getZoom())
+
+    // Add event listeners for map changes
+    mapInstance.on('moveend', () => {
+      const center = mapInstance.getCenter()
+      const zoom = mapInstance.getZoom()
+      console.log('Map moved to center:', [center.lat, center.lng], 'zoom:', zoom)
+    })
+
+    mapInstance.on('zoomend', () => {
+      const center = mapInstance.getCenter()
+      const zoom = mapInstance.getZoom()
+      console.log('Map zoomed to center:', [center.lat, center.lng], 'zoom:', zoom)
+    })
+  }
+
   return (
     <div className="map-container">
-      <MapContainer 
-        center={DEFAULT_POSITION} 
-        zoom={5} 
+      <MapContainer
+        center={DEFAULT_POSITION}
+        zoom={5}
         style={{ height: '100vh', width: '100%' }}
-        whenCreated={setMap}
+        whenCreated={handleMapCreated}
       >
         <TileLayer
           attribution='&copy; <a href="https://osm.org/copyright">OpenStreetMap</a>'

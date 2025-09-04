@@ -49,14 +49,33 @@ Celery Workers
     └── Trend Analysis
 ```
 
-## Setup
+## Quick Start (Windows)
 
-### Prerequisites
+### One-Click Startup
+For Windows users, we've created convenient batch files to start/stop the entire application:
+
+1. **Start the application:**
+   - Double-click `start_app.bat` in the project root
+   - This will automatically start all services in the background
+
+2. **Stop the application:**
+   - Double-click `stop_app.bat` to stop all running services
+
+The batch files handle:
+- ✅ Redis server startup
+- ✅ Celery worker and beat processes
+- ✅ FastAPI backend server
+- ✅ Frontend development server
+
+### Manual Setup
+
+#### Prerequisites
 - Docker and Docker Compose
 - Python 3.8+
 - Redis (for Celery)
+- Node.js and npm (for frontend)
 
-### Installation
+#### Installation
 
 1. **Clone and setup:**
 ```bash
@@ -70,16 +89,24 @@ cp .env.example .env
 # Edit .env with your settings
 ```
 
-3. **Start with Docker:**
+3. **Install dependencies:**
+```bash
+# Backend dependencies
+pip install -r requirements.txt
+
+# Frontend dependencies
+cd frontend
+npm install
+cd ..
+```
+
+4. **Start with Docker:**
 ```bash
 docker-compose up -d
 ```
 
-4. **Or run locally:**
+5. **Or run locally:**
 ```bash
-# Install dependencies
-pip install -r requirements.txt
-
 # Start Redis
 redis-server
 
@@ -91,6 +118,10 @@ celery -A celery_app beat --loglevel=info
 
 # Start FastAPI server
 uvicorn main:app --reload --host 0.0.0.0 --port 8000
+
+# Start frontend (in new terminal)
+cd frontend
+npm run dev
 ```
 
 ## API Endpoints
